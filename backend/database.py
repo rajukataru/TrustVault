@@ -15,11 +15,18 @@ ENV_FILE = BASE_DIR / ".env"
 # Load environment configuration
 load_dotenv(ENV_FILE, override=True)
 
+# ---------------------------------------------------------------------------
 # Database Configuration
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "mysql+pymysql://trustvault_app:TrustVault2026@localhost:3306/trustvault"
-)
+# DATABASE_URL must be set as an environment variable — no insecure fallback.
+# Example: mysql+pymysql://user:password@host:3306/dbname
+# ---------------------------------------------------------------------------
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise RuntimeError(
+        "DATABASE_URL environment variable is required but not set.\n"
+        "Set it in your .env file (local dev) or as a Render environment variable (production).\n"
+        "Example: mysql+pymysql://user:password@host:3306/trustvault"
+    )
 
 # Storage Configuration
 STORAGE_PATH_STR = os.getenv("STORAGE_PATH", "storage/private")
@@ -38,12 +45,33 @@ except ValueError:
 MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
 API_URL = os.getenv("API_URL", "http://127.0.0.1:8000")
 
+# ---------------------------------------------------------------------------
 # SQLAlchemy Engine & Session Setup
+#
+# SSL support for Aiven (or any cloud MySQL that requires TLS):
+# Set MYSQL_SSL_CA to the path of your downloaded CA certificate.
+# On Render, upload the .pem file as a Secret File and set MYSQL_SSL_CA to
+# its mounted path, e.g. /etc/secrets/aiven-ca.pem
+# If MYSQL_SSL_CA is not set, the engine connects without explicit SSL args
+# (suitable for local development).
+# ---------------------------------------------------------------------------
+MYSQL_SSL_CA = os.getenv("MYSQL_SSL_CA")  # e.g. "/etc/secrets/aiven-ca.pem"
+
+_connect_args: dict = {}
+if MYSQL_SSL_CA:
+    if not Path(MYSQL_SSL_CA).is_file():
+        raise RuntimeError(
+            f"MYSQL_SSL_CA is set to '{MYSQL_SSL_CA}' but the file was not found. "
+            "Ensure the CA certificate file exists at the specified path."
+        )
+    _connect_args["ssl"] = {"ca": MYSQL_SSL_CA}
+
 engine = create_engine(
     DATABASE_URL,
     pool_pre_ping=True,
     pool_recycle=1800,
-    echo=False
+    echo=False,
+    connect_args=_connect_args
 )
 
 SessionLocal = sessionmaker(
