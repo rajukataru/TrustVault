@@ -26,8 +26,9 @@ st.set_page_config(
 # Render Custom CSS
 st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
-# API Base URL
-API_URL = os.getenv("API_URL", "http://127.0.0.1:8000")
+# API Base URL — defaults to the deployed Render backend.
+# Override by setting the API_URL environment variable (e.g. for local development).
+API_URL = os.getenv("API_URL", "https://trustvault-api-c2oq.onrender.com")
 
 
 # ---------------------------------------------------------
