@@ -1,6 +1,6 @@
 """SQLAlchemy data models for TrustVault."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import (
     Column,
     Integer,
@@ -19,6 +19,11 @@ from sqlalchemy.orm import relationship
 from backend.database import Base
 
 
+def get_utc_now() -> datetime:
+    """Returns naive UTC datetime without Python 3.12 utcnow() deprecation."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -30,7 +35,7 @@ class User(Base):
     role = Column(String(20), nullable=False, default="viewer")
     is_active = Column(Boolean, default=True, nullable=False)
 
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=get_utc_now, nullable=False)
 
     __table_args__ = (
         CheckConstraint(
@@ -83,11 +88,11 @@ class Document(Base):
     size_bytes = Column(BigInteger, nullable=False)
     checksum_sha256 = Column(String(64), nullable=False)
 
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=get_utc_now, nullable=False)
     updated_at = Column(
         DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=get_utc_now,
+        onupdate=get_utc_now,
         nullable=False,
     )
 
@@ -139,7 +144,7 @@ class DocumentPermission(Base):
         nullable=False,
     )
 
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=get_utc_now, nullable=False)
 
     __table_args__ = (
         UniqueConstraint(
@@ -195,7 +200,7 @@ class AuditLog(Base):
     previous_hash = Column(String(64), nullable=True)
     entry_hash = Column(String(64), nullable=False, unique=True)
 
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=get_utc_now, nullable=False)
 
     __table_args__ = (
         Index("idx_audit_document", "document_id"),

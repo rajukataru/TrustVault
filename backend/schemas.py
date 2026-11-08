@@ -1,8 +1,12 @@
 """Pydantic data validation schemas for TrustVault API."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List, Literal
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
+
+
+def get_utc_now() -> datetime:
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 # ---------------------------------------------------------
@@ -124,4 +128,4 @@ class AuditVerificationResponse(BaseModel):
     total_records: int
     broken_at_id: Optional[int] = None
     details: str
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=get_utc_now)

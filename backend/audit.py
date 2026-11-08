@@ -1,6 +1,6 @@
 """Tamper-evident audit logging service using SHA-256 hash chaining."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, Dict, Any, List
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
@@ -47,7 +47,7 @@ def record_audit_event(
     previous_hash = latest_entry.entry_hash if latest_entry else GENESIS_PREVIOUS_HASH
 
     # Truncate microsecond to match MySQL DATETIME column precision
-    now = datetime.utcnow().replace(microsecond=0)
+    now = datetime.now(timezone.utc).replace(tzinfo=None, microsecond=0)
     created_at_str = format_audit_timestamp(now)
 
     entry_hash = compute_audit_hash(
