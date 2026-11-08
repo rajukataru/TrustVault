@@ -37,7 +37,8 @@ PYTHON_EXEC = sys.executable
 def run_seed():
     """Runs database seeder."""
     print("[*] Running TrustVault database seeder...")
-    subprocess.run([PYTHON_EXEC, "-m", "backend.seed"], cwd=str(PROJECT_ROOT))
+    from backend.database import seed_database
+    seed_database()
 
 
 def run_tests():

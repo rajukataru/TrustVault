@@ -1,6 +1,6 @@
 """FastAPI dependencies for JWT authentication, RBAC, and document authorization."""
 
-from typing import Optional
+from typing import Optional, Tuple
 from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
@@ -8,14 +8,17 @@ from jose import JWTError
 
 from backend.database import get_db
 from backend.models import User, Document, DocumentPermission
-from backend.security import decode_access_token
-from backend.audit import record_audit_event, ACTION_ACCESS_DENIED
+from backend.security import (
+    decode_access_token,
+    record_audit_event,
+    ACTION_ACCESS_DENIED
+)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 
 def get_client_ip(request: Request) -> str:
-    """Extracts client IP address from request headers or client host."""
+    """Extracts client IP address from request headers or host."""
     forwarded = request.headers.get("X-Forwarded-For")
     if forwarded:
         return forwarded.split(",")[0].strip()
@@ -26,7 +29,7 @@ def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db)
 ) -> User:
-    """Validates JWT access token and returns the authenticated user."""
+    """Validates JWT access token and returns authenticated active user."""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Invalid, expired, or missing authentication credentials",
@@ -57,10 +60,8 @@ def get_current_user(
 
 
 def require_roles(*allowed_roles: str):
-    """Dependency factory ensuring current user has one of the specified roles."""
-    def role_checker(
-        current_user: User = Depends(get_current_user)
-    ) -> User:
+    """Dependency factory ensuring user possesses one of the allowed roles."""
+    def role_checker(current_user: User = Depends(get_current_user)) -> User:
         if current_user.role not in allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -76,10 +77,7 @@ def get_effective_permission(
     user: User,
     document: Document
 ) -> Optional[str]:
-    """
-    Computes effective permission for a user on a given document:
-    Returns 'admin', 'owner', 'edit', 'read', or None.
-    """
+    """Computes effective permission level ('admin', 'owner', 'edit', 'read', or None)."""
     if user.role == "admin":
         return "admin"
     if document.owner_id == user.id:
@@ -98,13 +96,13 @@ def get_effective_permission(
 
 def verify_document_access(
     document_id: int,
-    required_level: str,  # 'read', 'edit', 'owner_or_admin'
+    required_level: str,
     current_user: User,
     db: Session,
     request: Request
-) -> tuple[Document, str]:
+) -> Tuple[Document, str]:
     """
-    Verifies user has the required permission level on the document.
+    Verifies user has the required permission level on a document.
     Logs an ACTION_ACCESS_DENIED audit event on failure.
     Returns (document, effective_permission).
     """
@@ -122,7 +120,6 @@ def verify_document_access(
     effective_perm = get_effective_permission(db, current_user, document)
     client_ip = get_client_ip(request)
 
-    # Permission check logic
     has_access = False
     if effective_perm in ("admin", "owner"):
         has_access = True
@@ -132,7 +129,6 @@ def verify_document_access(
         has_access = True
 
     if not has_access:
-        # Audit log the denied access attempt
         record_audit_event(
             db=db,
             action=ACTION_ACCESS_DENIED,
@@ -140,7 +136,7 @@ def verify_document_access(
             document_id=document.id,
             details=(
                 f"Access denied for user '{current_user.email}' (role: {current_user.role}). "
-                f"Required permission: '{required_level}', effective permission: '{effective_perm}'."
+                f"Required: '{required_level}', effective: '{effective_perm}'."
             ),
             ip_address=client_ip
         )

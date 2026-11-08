@@ -3,7 +3,7 @@
 import io
 import pytest
 from backend.models import AuditLog
-from backend.audit import verify_audit_chain
+from backend.security import verify_audit_chain
 
 
 def test_audit_logs_contain_key_actions(client, admin_headers):

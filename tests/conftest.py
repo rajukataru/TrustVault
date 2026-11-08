@@ -11,8 +11,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from backend.main import app
-from backend.database import SessionLocal
-from backend.seed import seed_database
+from backend.database import SessionLocal, seed_database
 from backend.models import User, Document, DocumentPermission, AuditLog
 
 
