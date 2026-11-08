@@ -56,21 +56,13 @@ TrustVault guarantees document confidentiality, role-based access control (RBAC)
 ```
 TrustVault/
 ├── backend/
-│   ├── __init__.py
-│   ├── config.py              # Centralized environment configuration
-│   ├── database.py            # SQLAlchemy engine, session maker, get_db dependency
+│   ├── main.py                # FastAPI entrypoint, health check, documents, sharing & audit routes
+│   ├── auth.py                # Registration, login, profile, and user management routes
+│   ├── security.py            # Argon2 hashing, JWT tokens, SHA-256 checks & hash chaining
+│   ├── database.py            # Database engine, session, storage configuration & seeder
 │   ├── models.py              # User, Document, DocumentPermission, AuditLog ORM models
-│   ├── schemas.py             # Pydantic request/response validation models
-│   ├── security.py            # Argon2 password hashing, JWT creation/decoding, SHA-256 helpers
-│   ├── audit.py               # SHA-256 hash chaining engine & integrity verification
-│   ├── dependencies.py        # OAuth2 token authentication, RBAC, access-denied logging
-│   ├── auth.py                # Registration, JSON/Form login, profile endpoints
-│   ├── documents.py           # Upload (10MB limit), search, download, edit, delete
-│   ├── sharing.py             # Granular permission grants, collaborator listing, revocation
-│   ├── users.py               # Admin user management and collaborator lookup
-│   ├── audit_routes.py        # Audit log explorer and cryptographic chain verification
-│   ├── main.py                # FastAPI application entrypoint with CORS & health checks
-│   └── seed.py                # Database seeder for demo accounts and sample document
+│   ├── schemas.py             # Pydantic request and response validation schemas
+│   └── dependencies.py        # JWT authentication, role guards & document access verification
 ├── frontend/
 │   ├── __init__.py
 │   ├── app.py                 # Streamlit multi-tab application
